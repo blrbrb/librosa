@@ -92,18 +92,6 @@ end
 local function format_description(name, def)
     if def.species and not def.genus then
         def.description = def.description ..
-<<<<<<< HEAD
-            "\n" .. core.colorize("#d0ffd0", "Unknown") .. "/n" .. core.colorize("#d0ffd0", def.species)
-    elseif def.genus and not def.species then
-        def.description = def.description ..
-            "\n" .. core.colorize("#d0ffd0", def.genus) .. "/n" .. core.colorize("#d0ffd0", "Unknown")
-    elseif not def.genus and not def.species then
-        def.description = def.description ..
-            "\n" .. core.colorize("#d0ffd0", "Unknown") .. "/n" .. core.colorize("#d0ffd0", "Unknown")
-    else
-        def.description = def.description ..
-            "\n" .. core.colorize("#d0ffd0", def.genus) .. "/n" .. core.colorize("#d0ffd0", def.species)
-=======
             "\n" .. core.colorize("#d0ffd0", "Unknown") .. "\n" .. core.colorize("#d0ffd0", def.species)
     elseif def.genus and not def.species then
         def.description = def.description ..
@@ -114,7 +102,6 @@ local function format_description(name, def)
     else
         def.description = def.description ..
             "\n" .. core.colorize("#d0ffd0", def.genus) .. "\n" .. core.colorize("#d0ffd0", def.species)
->>>>>>> 0b23def (initial)
     end
 end
 
