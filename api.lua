@@ -4,6 +4,33 @@
 -- so we keep track of the registered plant defs with a table attached to the global namespace
 Librosa.registered_plants = {}
 
+
+
+function tprint(tbl, indent)
+    if not indent then indent = 0 end
+    local toprint = string.rep(" ", indent) .. "{\r\n"
+    indent = indent + 2
+    for k, v in pairs(tbl) do
+        toprint = toprint .. string.rep(" ", indent)
+        if (type(k) == "number") then
+            toprint = toprint .. "[" .. k .. "] = "
+        elseif (type(k) == "string") then
+            toprint = toprint .. k .. "= "
+        end
+        if (type(v) == "number") then
+            toprint = toprint .. v .. ",\r\n"
+        elseif (type(v) == "string") then
+            toprint = toprint .. "\"" .. v .. "\",\r\n"
+        elseif (type(v) == "table") then
+            toprint = toprint .. tprint(v, indent + 2) .. ",\r\n"
+        else
+            toprint = toprint .. "\"" .. tostring(v) .. "\",\r\n"
+        end
+    end
+    toprint = toprint .. string.rep(" ", indent - 2) .. "}"
+    return toprint
+end
+
 -- generate unique node names per. stage, if needed
 local function get_stage_node_name(base_name, stage)
     return base_name .. "_stage_" .. stage
@@ -222,11 +249,11 @@ end
 --
 -- }
 function Librosa.register_simple_plant(name, def)
-    assert(type(def) == "table", "Plant definition must be a table")
-    assert(def.texture, "no texture!")
-    assert(def.name, "A name needs to be given to this plant!")
-    assert(def.description, "A basic description is required.")
-    assert(def.biomes and type(def.biomes) == "table", "Biomes must be provided as a table.")
+    assert(type(def) == "table", "[librosa] Plant definition must be a table")
+    assert(def.texture, "[librosa] this plant has no texture!")
+    assert(def.name, "[librosa] A name needs to be given to this plant!")
+    assert(def.description, "[librosa] A basic description is required.")
+    assert(def.biomes and type(def.biomes) == "table", "[librosa] Biomes must be provided as a table.")
 
     Librosa.registered_plants[name] = def
 
@@ -260,6 +287,7 @@ function Librosa.register_simple_plant(name, def)
         },
     })
 
+    core.debug(tprint(Librosa.surface_nodes))
     -- Register world decoration
     minetest.register_decoration({
         name = name .. "_decoration",
@@ -275,7 +303,6 @@ function Librosa.register_simple_plant(name, def)
         y_min = def.y_min or 1,
         y_max = def.y_max or 31000,
         decoration = name,
-        flags = "force_placement",
     })
 
     -- AFTER the node is registered, check def for pottable. Then register with flowerpot

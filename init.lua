@@ -18,7 +18,7 @@ function Librosa.extract_surface_nodes()
                     Librosa.surface_nodes[biome.name] = {}
                 end
                 table.insert(Librosa.surface_nodes[biome.name], node_name)
-                minetest.log("action",
+                minetest.debug("action",
                     "[librosa] Registering surface node from biome: " .. biome.name .. " " .. node_name)
             end
         end
@@ -30,6 +30,5 @@ end
 minetest.register_on_mods_loaded(function()
     -- get a list of all registered biome surface nodes.
     Librosa.extract_surface_nodes()
-
     -- assign dye recipes to all of the plants marked as dye craftable
 end)

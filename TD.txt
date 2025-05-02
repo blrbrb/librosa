@@ -1,0 +1,40 @@
+/// Mission Statement
+
+The purpose of this library is to make it as easy as possible for new modders, or people who don't understand programming to be creative with luanti.
+It should be as simple as gardening.
+
+Which is why the plantdef uses parameter names like `shade_tolerance` instead of `maxlightl`.
+It's also why instead of asking for a list of biomes, the plantdef has parameters called `humidity` and `temperature`. This library will scan all registered biomes and store them in a list, collecting the "top" or surface nodes for each biome and organizing them in tables.
+
+This way instead of having to remember all of the many mod and biome names, a user needs only to specify one of six temperature values `torrid` `hot` `temperate` `cool` `cold` `frigid`
+and one of four humidity values `aquatic` `tropical` `normal` `arid`. And the correct biomes will be selected from the table using the values as keys. e.g.
+
+librosa.register_plant("dummy:aquatic_kelp",{
+    name = "common kelp"
+    description = "this is a dummy description",
+    species = "",
+    genus = "Macrocystis"
+    temperature = "temperate",
+    humidity = "aquatic"
+})
+
+when "dummy:aquatic_kelp" is actually registered with core.register_decoration, we take `temperate` and `aquatic` and use them as keys to index the correct biomes, and surface nodes
+to place the plant node on.
+
+core.register_decoration(plantdef,{
+    place_on = librosa.surface_nodes[plantdef.temperature][plantdef.humidity] -- will return a table of surface nodes registered in biomes which match the ideal temperature and humidity
+})
+
+
+1. Create biome.lua, move the surface node registration logic from init.lua to biome.lua.
+2. Add `humidity` and `temperature` parameters to register_plant() and create logic to automatically fill the value of `place_on` and `biome` for the core.register_decoration({}) call
+3. Add `shade_tolerance` parameter to register_plant(). There should be three possible values. `full-shade`, `partial-shade`, and `full-sun`. Write an algorithim to pass to the minetest.register_decoration({}) call which
+4. Add a `mesh` property to register_plant() which accepts a .b3d or .obj meshfile for the plant def and passes it to the core.register_node({}) call (for things with custom 3d models)
+
+
+
+
+
+/////
+General Notes:
+When you get around to writing register_tree() and register_shrub(), make sure to set `waving` to 2.
