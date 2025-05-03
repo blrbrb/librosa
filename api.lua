@@ -281,6 +281,8 @@ function Librosa.register_simple_plant(name, def)
         walkable = false,
         groups = groups,
         sounds = default.node_sound_leaves_defaults(),
+        floodable = true,
+        drop = def.drop or nil,
         selection_box = {
             type = "fixed",
             fixed = { -0.25, -0.5, -0.25, 0.25, 0.3, 0.25 },
@@ -383,4 +385,65 @@ function Librosa.register_vine(vname, vinedef)
             end,
         })
     end
+end
+
+--- Register a tree type plant
+--- tdef
+--        //Basic Parameters
+--      name (str)[required]: A name for the plant (this is required for generating the seed / cutting nodes)
+--      description (str)[required]: A simple description
+--      texture (str)[required]: The main image texture
+--      genus (str)[default="Unknown"]: Optionally, provide a genus to add to the description
+--      species (str)[default="Unknown"]: Optionally, provide a species to add to the description
+--      inventory_image (str)[default=texture]: Optionally, provide an inventory image other than the texture specified with texture=""
+spec
+function Librosa.register_tree(tname, tdef)
+    -- Ensure the tree has necessary properties
+    assert(tdef.name, "Tree must have a name.")
+    assert(tdef.trunk_texture, "Tree must have a trunk texture.")
+    assert(tdef.leaf_texture, "Tree must have a leaf texture.")
+    assert(tdef.height, "Tree must have a height.")
+
+    -- Register tree components (nodes)
+    minetest.register_node(tname .. "_trunk", {
+        description = tdef.name .. " log",
+        tiles = { tdef.trunk_texture },
+        groups = { choppy = 2, wood = 1 },
+    })
+
+    minetest.register_node(tname .. "_leaves", {
+        description = tdef.name .. " Leaves",
+        tiles = { tdef.leaf_texture },
+        groups = { snappy = 3, leaf = 1 },
+        drop = {
+            max_items = 1,
+            items = {
+                { items = { tname .. "_sapling" }, rarity = 20 },
+                { items = { tname .. "_leaves" } }
+            }
+        },
+    })
+
+    -- Register the sapling (for growing the tree)
+    minetest.register_node(tname .. "_sapling", {
+        description = def.name .. " Sapling",
+        drawtype = "plantlike",
+        tiles = { def.name .. "_sapling.png" },
+        groups = { snappy = 3, sapling = 1 },
+        on_place = function(itemstack, placer, pointed_thing)
+            -- Plant the sapling in the world
+            if pointed_thing.under then
+                local pos = pointed_thing.under
+                local y = pos.y + 1
+                minetest.set_node({ x = pos.x, y = y, z = pos.z }, { name = "tree_mod:" .. def.name .. "_sapling" })
+            end
+            return itemstack
+        end,
+    })
+
+    -- Register the tree generation function
+    if not Librosa.registered_plants["trees"] then
+        Librosa.registered_plants["trees"] = {}
+    end
+    Librosa.registered_plants["trees"][tdef.name] = tdef
 end
