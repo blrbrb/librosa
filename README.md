@@ -17,12 +17,45 @@ librosa is a minetest/luanti library for modders to quickly and easily add new p
 
 
 
+## Registering Plant Decorations
+Plants are registered once as nodes, and then again as decorations in order to properly do spreads. To create a new plant decoration, call:
+```register_plant(name,plantdef)```
+where `name` is a name for your plant decoration e.g `mymod:wild_rosemary`.
 
+### Plantdef
+Plantdefs are passed directly to `core.register_node()` and `core.register_decoration()`. Any and all of the attributes of these two global callback functions can also be given to the plantdef. There are also feilds for genus and species name, which are formatted and printed when hovering above the node in crafting menus.
 
-## Registering a biome to librosa
-the register_biome() function takes two parameters. Your biome, and a biome typ(choose from defaults, or create your own)
+```Plantdef
+  {
+
+--      // Basic Parameters:
+--      name (str)[required]: A name for the plant
+--      description (str)[required]: A simple description
+--      texture (str)[required]: The main image texture
+--      genus (str)[default="Unknown"]: Optionally. Provide a genus to add to the description
+--      species (str)[default="Unknown"]: Optionally. Provide a species to add to the description
+
+--      biome (table/str)[required]: A biometype e.g. "desert", a list of biomes e.g. {"default:swamp","othermod:marsh"}, or the name of a biome group.
+--      surface_nodes (table)[optional]: A list of surface nodes where it's appropriate to place the plant  e.g { "default:dirt_with_grass,default:dirt_with_snow" }
+--
+--      // Dye Parameters
+--      dye (true/false)[default=false]: Default false, if set. Plant will have a dye recipe registered.
+--      dye_color (str)[required]: Specify a dye color for the plant to produce when used in the crafting grid
+--      dye_craft_amount (num) [default=1]: Optional, specify how many dye items are crafted per one instance of this plant
+--
+--      // Misc Parameters
+--      pottable (true/false)[default=false]: Optional, specify whether or not the plant should be placeable with the flowerpot mod (if installed)
+--
+--
+  }
+```
+
+## Registering a Biome to Librosa
+the register_biome() function takes two parameters. Your biome, and a biome type (choose from defaults, or create your own):
 ```librosa.register_biome(biomedef, "costal")```
-That's it. The biome will be registered as normal, it's surface nodes will be sorted into climate groups. And plant decorations registered with register_plant()
+That's it.
+
+The biome will be registered as normal, it's surface nodes will be sorted into climate groups. And plant decorations registered with register_plant()
 will automatically be placed in the correct spots.
 
 You can also supply the names of already existing biomes if your mod already has methods to register biomes on it's own
@@ -40,13 +73,14 @@ Librosa uses a table of indexed biomes and aliases to sort biomes extensivley ba
 The default biome types are
 ```
   aquatic
-  alpine
+  mountain
   coastal
   wetland
   grassland
   forest
   equitorial
   desert
-
-
+  jungle
+  tundra
+  taiga
 ```

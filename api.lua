@@ -64,25 +64,15 @@ end
 -- Register a plant as a simple decoration, nothing more. Nothing less.
 --:
 -- {
---      // Basic Parameters:
---      name (str)[required]: A name for the plant (this is required for generating the seed / cutting nodes)
+--
+--      name (str)[required]: A name for the plant
 --      description (str)[required]: A simple description
 --      texture (str)[required]: The main image texture
---      mesh (str)[default=nil]: It's possible to create a plant with a 3d mesh. (the texture supplied will become the diffuse)
---      genus (str)[default="Unknown"]: Optionally, provide a genus to add to the description
---      species (str)[default="Unknown"]: Optionally, provide a species to add to the description
---      inventory_image (str)[default=texture]: Optionally, provide an inventory image
+--      genus (str)[default="Unknown"]: Optional. Provide a genus to add to the description
+--      species (str)[default="Unknown"]: Optional. Provide a species to add to the description
 --
---      // Worldgen Parameters:
---      biomes (table)[required]: A list of biomes where it's appropriate to place this plant e.g {"default:swamp","othermod:marsh"}
---      surface_nodes (table)[required]: A list of surface nodes where it's appropriate to place the plant  e.g { "default:dirt_with_grass,default:dirt_with_snow" }
---      y_min (num)[default=1]: Y minimum range where the plant can spawn
---      y_max (num)[default=31000]: Y maximum range where the plant can spawn
---      visual_scale (float)[default=1.0]: optionally refine the visual size of the plant node.
---
---      // Plant Seed Parameters:
---      seed (true/false)[default=false]: If set. Plant will have seeds craft items registered.
---      seed_texture (str)[default=blank.png]: Optional, if no texture is given default fallback will be used.
+--      biome (table/str)[required]: A biometype e.g. "desert", a list of biomes e.g. {"default:swamp","othermod:marsh"}, or the name of a biome group.
+--      surface_nodes (table)[optional]: A list of surface nodes where it's appropriate to place the plant  e.g { "default:dirt_with_grass,default:dirt_with_snow" }
 --
 --      // Dye Parameters
 --      dye (true/false)[default=false]: Default false, if set. Plant will have a dye recipe registered.
@@ -118,10 +108,8 @@ function Librosa.register_simple_plant(name, def)
     --if surface_nodes is nil, make guesses on which surface nodes are appropriate to place the plant on based on the supplied biomes
     if not def.surface_nodes then
         if #def.biomes > 1 then
-            core.debug("no biomes supplied")
             for i, biome in pairs(def.biomes) do
                 core.debug(biome)
-                core.debug(Librosa.surface_nodes[biome])
                 table.insert(place_on, Librosa.surface_nodes[biome])
             end
         else
@@ -180,3 +168,5 @@ function Librosa.register_simple_plant(name, def)
         pottable_plant(name)
     end
 end
+
+function Librosa.register_biome(biome)
