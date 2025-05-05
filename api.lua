@@ -5,8 +5,7 @@
 Librosa.registered_plants = {}
 
 
-
-function tprint(tbl, indent)
+Librosa.tprint = function(tbl, indent)
     if not indent then indent = 0 end
     local toprint = string.rep(" ", indent) .. "{\r\n"
     indent = indent + 2
@@ -31,93 +30,7 @@ function tprint(tbl, indent)
     return toprint
 end
 
--- generate unique node names per. stage, if needed
-local function get_stage_node_name(base_name, stage)
-    return base_name .. "_stage_" .. stage
-end
 
--- Register nodes for each growth stage, if needed
-local function register_growth_nodes(name, def)
-    for stage, texture in ipairs(def.textures) do
-        local node_name = get_stage_node_name(name, stage)
-        minetest.register_node(node_name, {
-            description = def.description .. " (Stage " .. stage .. ")",
-            drawtype = "plantlike",
-            tiles = { texture },
-            inventory_image = texture,
-            wield_image = texture,
-            paramtype = "light",
-            sunlight_propagates = true,
-            walkable = false,
-            groups = { snappy = 3, flammable = 2, plant = 1, not_in_creative_inventory = 1 },
-            drop = "", -- No drop from stages directly
-            sounds = default.node_sound_leaves_defaults(),
-            selection_box = {
-                type = "fixed",
-                fixed = { -0.25, -0.5, -0.25, 0.25, 0.5, 0.25 },
-            },
-        })
-    end
-end
-
--- Register nodes for each growth stage. if needed
-local function register_vine_growth_nodes(name, def)
-    for stage, texture in ipairs(def.textures) do
-        local node_name = get_stage_node_name(name, stage)
-        minetest.register_node(node_name, {
-            description = def.description,
-            drawtype = "plantlike",
-            waving = 1,
-            tiles = { texture },
-            inventory_image = texture,
-            wield_image = texture,
-            paramtype = "light",
-            sunlight_propagates = true,
-            walkable = true,
-            climbable = def.climbable,
-            groups = { snappy = 3, vine = 1, flammable = 2, plant = 1, not_in_creative_inventory = 1 },
-            drop = "", -- No drop from stages directly
-            sounds = default.node_sound_leaves_defaults(),
-            selection_box = {
-                type = "fixed",
-                fixed = { -0.2, -0.5, -0.2, 0.2, 0.5, 0.2 },
-            },
-            collision_box = {
-                type = "fixed",
-                fixed = { -0.2, -0.5, -0.2, 0.2, 0.5, 0.2 },
-            }, -- Make it attach to sides
-            paramtype2 = "wallmounted",
-            placement = "wallmounted",
-            -- Attach to wall
-            on_construct = function(pos)
-                minetest.get_node_timer(pos):start(math.random(30, 90))
-            end,
-            on_timer = function(pos, elapsed)
-                local node = minetest.get_node(pos)
-                local name = node.name
-                local current_stage = tonumber(name:match("_(%d+)$"))
-                if current_stage and current_stage < stages then
-                    minetest.set_node(pos, { name = vname .. "_" .. (current_stage + 1), param2 = node.param2 })
-                    minetest.get_node_timer(pos):start(math.random(vinedef.growth_rate_min, vinedef.growth_rate_max)) -- Start timer again for next growth
-                end
-            end,
-            after_place_node = function(pos, placer, itemstack, pointed_thing)
-                -- Ensure it attaches correctly
-                local under = pointed_thing.under
-                local above = pointed_thing.above
-                local dir = {
-                    x = under.x - above.x,
-                    y = under.y - above.y,
-                    z = under.z - above.z,
-                }
-                local wallmounted = minetest.dir_to_wallmounted(dir)
-                local node = minetest.get_node(pos)
-                node.param2 = wallmounted
-                minetest.set_node(pos, node)
-            end,
-        })
-    end
-end
 
 -- prettify the description of the plant, so that the name of the genus and species appear neatly when hoevered over in the inventory.
 local function format_description(name, def)
@@ -138,8 +51,7 @@ local function format_description(name, def)
     -- TD: Add qualifiers for temperature, biome, progagation (seed/cutting) etc
 end
 
-
-local function register_pottable_plant(name)
+local function pottable_plant(name)
     if core.global_exists("flowerpot") then
         flowerpot.register_node(name)
     else
@@ -148,85 +60,18 @@ local function register_pottable_plant(name)
     end
 end
 
-local function register_seeds(name, def)
-    minetest.register_craftitem(name, {
-        description = def.name .. " Seed",
-        inventory_image = def.seed_texture or "seeds_aster.png"
-    })
-    --- if core.global_exists("farming") then
-    ---  farming.register_plant(name,
-    ---  {
-    ---     inventory_image =
-    ---  })
-    ---end
-end
 
--- Node timer callback to handle plant growth
-local function grow_plant(pos, node)
-    for plant_id, def in pairs(Librosa.registered_plants) do
-        for stage = 1, #def.textures - 1 do
-            if node.name == get_stage_node_name(plant_id, stage) then
-                minetest.set_node(pos, { name = get_stage_node_name(plant_id, stage + 1) })
-                minetest.get_node_timer(pos):start(def.growth_time)
-                return
-            end
-        end
-    end
-end
-
--- Register a plant as a decoration, and automatically as a crop if any farming mods are installed
---
--- Plant Def:
---
---      // Basic Parameters:
---      name (str)[required]: A name for the plant (this is required for generating the seed / cutting nodes)
---      description (str)[required]: A simple description
---      textures (table)[required]: The main image texture, one for each stage of growth
---      inventory_image (str)[default=texture]: Optionally, provide an inventory image other than the texture specified with texture=""
---      genus (str)[default="Unknown"]: Optionally, provide a genus to add to the description
---      species (str)[default="Unknown"]: Optionally, provide a species to add to the description
---
---      // Farming/ Growth Parameters:
---      steps (int)[required]: Number of growth stages to preform until the crop/plant is mature
---      minlight (float)[default=12]: Minimal light requirements for the crop/plant to be able to grow
---      maxlight (float)[default=99]: Maximum light level for the crop/plant to be able to grow
---      can_grow (function)[default=()]: Growth determinate function to provide the default farming mod
---
---
-function Librosa.register_seeding_plant(name, def)
-    assert(type(def) == "table", "Plant definition must be a table")
-    assert(type(def.textures) == "table" and #def.textures > 1, "Plant must have at least 2 growth stage textures")
-    assert(def.growth_time, "growth_time must be specified (in seconds)")
-    assert(def.description, "description must be provided")
-
-    Librosa.registered_plants[name] = def
-
-    if core.global_exists("farming") then
-        farming.register_plant(name, {
-            description = def.description,
-            steps = def.steps,
-            inventory_image = def.inventory_image or def.texture,
-            minlight = def.minlight or 13,
-            maxlight = def.maxlight or 99,
-            cangrow = def.cangrow or nil
-        })
-    elseif core.global_exists("xfarming") then
-        core.debug("(librosa)[ERR] method not implemented")
-    end
-    core.debug("(librosa)[WARN] Trying to register " .. name .. " as a seeding plant, but farming is not installed!!")
-end
-
--- Register a plant as a simple decoration
---
--- Simple Plant Def:
+-- Register a plant as a simple decoration, nothing more. Nothing less.
+--:
 -- {
 --      // Basic Parameters:
 --      name (str)[required]: A name for the plant (this is required for generating the seed / cutting nodes)
 --      description (str)[required]: A simple description
 --      texture (str)[required]: The main image texture
+--      mesh (str)[default=nil]: It's possible to create a plant with a 3d mesh. (the texture supplied will become the diffuse)
 --      genus (str)[default="Unknown"]: Optionally, provide a genus to add to the description
 --      species (str)[default="Unknown"]: Optionally, provide a species to add to the description
---      inventory_image (str)[default=texture]: Optionally, provide an inventory image other than the texture specified with texture=""
+--      inventory_image (str)[default=texture]: Optionally, provide an inventory image
 --
 --      // Worldgen Parameters:
 --      biomes (table)[required]: A list of biomes where it's appropriate to place this plant e.g {"default:swamp","othermod:marsh"}
@@ -257,20 +102,42 @@ function Librosa.register_simple_plant(name, def)
 
     Librosa.registered_plants[name] = def
 
-    local groups = { snappy = 3, flammable = 2, flower = 1, flora = 1 }
 
-    if def.seed == true then
-        minetest.debug("registering seeds for " .. def.name)
-        register_seeds(name, def)
-    elseif def.dye then
+    local groups = { snappy = 3, flammable = 2, flower = 1, flora = 1 }
+    local drawtype = "plantlike"
+    local place_on = {}
+
+    if def.dye then
         groups["color_" .. def.dye_color] = 1
     end
 
+    if def.mesh then
+        drawtype = "mesh"
+    end
+
+    --if surface_nodes is nil, make guesses on which surface nodes are appropriate to place the plant on based on the supplied biomes
+    if not def.surface_nodes then
+        if #def.biomes > 1 then
+            core.debug("no biomes supplied")
+            for i, biome in pairs(def.biomes) do
+                core.debug(biome)
+                core.debug(Librosa.surface_nodes[biome])
+                table.insert(place_on, Librosa.surface_nodes[biome])
+            end
+        else
+            table.insert(place_on, Librosa.surface_nodes[def.biomes[#def.biomes]])
+        end
+    else
+        place_on = def.surface_nodes
+    end
+    core.debug("placing this plant on")
+    core.debug(tprint(place_on))
     format_description(name, def)
 
-    minetest.register_node(name, {
+    core.register_node(name, {
         description = def.description,
         drawtype = "plantlike",
+        mesh = def.mesh or nil,
         tiles = { def.texture },
         visual_scale = def.visual_scale or 1.0,
         inventory_image = def.inventory_image or def.texture,
@@ -288,8 +155,9 @@ function Librosa.register_simple_plant(name, def)
             fixed = { -0.25, -0.5, -0.25, 0.25, 0.3, 0.25 },
         },
     })
-
-    core.debug(tprint(Librosa.surface_nodes))
+    --core.debug(def.biomes[#def.biomes])
+    --core.debug(Librosa.tprint(Librosa.surface_nodes))
+    -- core.debug(Librosa.tprint(def.biomes))
     -- Register world decoration
     minetest.register_decoration({
         name = name .. "_decoration",
@@ -297,7 +165,7 @@ function Librosa.register_simple_plant(name, def)
         species = def.species or "",
         genus = def.genus or "",
         visual_scale = 1.0,
-        place_on = def.surface_nodes or Librosa.surface_nodes[def.biomes[#def.biomes]],
+        place_on = place_on, --def.surface_nodes or Librosa.surface_nodes[def.biomes[#def.biomes]],
         sidelen = 16,
         waving = true,
         fill_ratio = def.fill_ratio or 0.01,
@@ -309,141 +177,6 @@ function Librosa.register_simple_plant(name, def)
 
     -- AFTER the node is registered, check def for pottable. Then register with flowerpot
     if def.pottable then
-        register_pottable_plant(name)
+        pottable_plant(name)
     end
-end
-
--- vinedef
---  (note, the textures for each stage of the vine must begin with the name of your mod
---  a hyphen (_) and then the name of the vine. The textures must also have numerical indexes
---  e.g. yourmod_morningglory_stage_1.png or yourmod_clamantis_stage_1.png)
---     {
---          name: a basic title/name (str)
---          description: A description (str)
---          stages: number of growth stages (num)
---          climbable: Should the vine be climbable (true/false)
---          growth_rate_max: A maximum amount of time in ticks before the vine can grow
---          growth_rate_min: A minimum amount of time in ticks before the vine can grow
---     }
-function Librosa.register_vine(vname, vinedef)
-    local stages = vinedef.stages
-
-    Librosa.registered_plants[vname] = def
-    -- Register each stage as a separate node
-    for stage = 1, stages do
-        minetest.register_node(vname .. "_" .. stage, {
-            description = vinedef.description .. "(Stage " .. stage .. ")",
-            drawtype = "plantlike",
-            waving = 1,
-            tiles = { vname .. "_" .. stage .. ".png" },
-            inventory_image = vname .. "_" .. stage .. ".png",
-            wield_image = vname .. "_" .. stage .. ".png",
-            paramtype = "light",
-            sunlight_propagates = true,
-            walkable = false,
-            climbable = vinedef.climbable,
-            groups = { snappy = 3, vine = 1, not_in_creative_inventory = 1, attached_node = 1 },
-            drop = vname .. "_" .. stages, -- fully grown vine drops itself
-            selection_box = {
-                type = "fixed",
-                fixed = { -0.2, -0.5, -0.2, 0.2, 0.5, 0.2 },
-            },
-            collision_box = {
-                type = "fixed",
-                fixed = { -0.2, -0.5, -0.2, 0.2, 0.5, 0.2 },
-            },
-
-            -- Make it attach to sides
-            paramtype2 = "wallmounted",
-            placement = "wallmounted",
-            -- Attach to wall
-            on_construct = function(pos)
-                minetest.get_node_timer(pos):start(math.random(30, 90))
-            end,
-            on_timer = function(pos, elapsed)
-                local node = minetest.get_node(pos)
-                local name = node.name
-                local current_stage = tonumber(name:match("_(%d+)$"))
-                if current_stage and current_stage < stages then
-                    minetest.set_node(pos, { name = vname .. "_" .. (current_stage + 1), param2 = node.param2 })
-                    minetest.get_node_timer(pos):start(math.random(vinedef.growth_rate_min, vinedef.growth_rate_max)) -- Start timer again for next growth
-                end
-            end,
-            after_place_node = function(pos, placer, itemstack, pointed_thing)
-                -- Ensure it attaches correctly
-                local under = pointed_thing.under
-                local above = pointed_thing.above
-                local dir = {
-                    x = under.x - above.x,
-                    y = under.y - above.y,
-                    z = under.z - above.z,
-                }
-                local wallmounted = minetest.dir_to_wallmounted(dir)
-                local node = minetest.get_node(pos)
-                node.param2 = wallmounted
-                minetest.set_node(pos, node)
-            end,
-        })
-    end
-end
-
---- Register a tree type plant
---- tdef
---        //Basic Parameters
---      name (str)[required]: A name for the plant (this is required for generating the seed / cutting nodes)
---      description (str)[required]: A simple description
---      texture (str)[required]: The main image texture
---      genus (str)[default="Unknown"]: Optionally, provide a genus to add to the description
---      species (str)[default="Unknown"]: Optionally, provide a species to add to the description
---      inventory_image (str)[default=texture]: Optionally, provide an inventory image other than the texture specified with texture=""
-spec
-function Librosa.register_tree(tname, tdef)
-    -- Ensure the tree has necessary properties
-    assert(tdef.name, "Tree must have a name.")
-    assert(tdef.trunk_texture, "Tree must have a trunk texture.")
-    assert(tdef.leaf_texture, "Tree must have a leaf texture.")
-    assert(tdef.height, "Tree must have a height.")
-
-    -- Register tree components (nodes)
-    minetest.register_node(tname .. "_trunk", {
-        description = tdef.name .. " log",
-        tiles = { tdef.trunk_texture },
-        groups = { choppy = 2, wood = 1 },
-    })
-
-    minetest.register_node(tname .. "_leaves", {
-        description = tdef.name .. " Leaves",
-        tiles = { tdef.leaf_texture },
-        groups = { snappy = 3, leaf = 1 },
-        drop = {
-            max_items = 1,
-            items = {
-                { items = { tname .. "_sapling" }, rarity = 20 },
-                { items = { tname .. "_leaves" } }
-            }
-        },
-    })
-
-    -- Register the sapling (for growing the tree)
-    minetest.register_node(tname .. "_sapling", {
-        description = def.name .. " Sapling",
-        drawtype = "plantlike",
-        tiles = { def.name .. "_sapling.png" },
-        groups = { snappy = 3, sapling = 1 },
-        on_place = function(itemstack, placer, pointed_thing)
-            -- Plant the sapling in the world
-            if pointed_thing.under then
-                local pos = pointed_thing.under
-                local y = pos.y + 1
-                minetest.set_node({ x = pos.x, y = y, z = pos.z }, { name = "tree_mod:" .. def.name .. "_sapling" })
-            end
-            return itemstack
-        end,
-    })
-
-    -- Register the tree generation function
-    if not Librosa.registered_plants["trees"] then
-        Librosa.registered_plants["trees"] = {}
-    end
-    Librosa.registered_plants["trees"][tdef.name] = tdef
 end

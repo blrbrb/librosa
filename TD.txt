@@ -4,10 +4,23 @@ The purpose of this library is to make it as easy as possible for new modders, o
 It should be as simple as gardening.
 
 Which is why the plantdef uses parameter names like `shade_tolerance` instead of `maxlightl`.
-It's also why instead of asking for a list of biomes, the plantdef has parameters called `humidity` and `temperature`. This library will scan all registered biomes and store them in a list, collecting the "top" or surface nodes for each biome and organizing them in tables.
+It's also why instead of asking for a list of biomes, the library will be used to keep track of all registered biomes; and  sort them catagoregically into groups based off of real life biome analogues. This way instead of having to remember all of the many mod and biome names, a user needs only to specify one of the default biome types e.g (`costal` `savannah` `mangroove` `glen` `temperate_forest` `jungle` `marsh`).
 
-This way instead of having to remember all of the many mod and biome names, a user needs only to specify one of six temperature values `torrid` `hot` `temperate` `cool` `cold` `frigid`
-and one of four humidity values `aquatic` `tropical` `normal` `arid`. And the correct biomes will be selected from the table using the values as keys. e.g.
+I thought of this because sometimes mods will register biomes without actually registering their associated nodes and attributes into groups which can easily be used to sort them
+by climate. The biomelib library isn't very well maintained, and harder for beginner modders to understand. And the biome_info api doesn't really give you the ability to do anything beyond basic data retrevial. Librosa acts as a global "plant-placement manager". For moddders interested in realism and natural landscapes.
+
+With this library, it's possible to create global definitions for unique plant decorations that need to be spawned in specific and realistic locations -- without having to be a lua expert. Furthermore, modders can easily and freely add their custom biome definitions.
+
+
+## Registering a biome to librosa
+the register_biome() function takes two parameters. Your biome, and a biome typ(choose from defaults, or create your own)
+```librosa.register_biome(biomedef, "costal")```
+That's it. The biome will be registered as normal, it's surface nodes will be sorted into climate groups. And plant decorations registered with register_plant()
+will automatically be placed in the correct spots.
+
+You can also supply the names of already existing biomes:
+```librosa.register_biome("grassland", "temperate_grassland")```
+
 
 librosa.register_plant("dummy:aquatic_kelp",{
     name = "common kelp"
@@ -31,8 +44,19 @@ core.register_decoration(plantdef,{
 3. Add `shade_tolerance` parameter to register_plant(). There should be three possible values. `full-shade`, `partial-shade`, and `full-sun`. Write an algorithim to pass to the minetest.register_decoration({}) call which
 4. Add a `mesh` property to register_plant() which accepts a .b3d or .obj meshfile for the plant def and passes it to the core.register_node({}) call (for things with custom 3d models)
 
+5. Use the already registered groups to do the sorting of plants into their subsequent biomes.
+6. Create a global table to keep track of biome groups sorted by climate (humidity, temp)
+7. Add a method for modders to register a biome under the six default templates
+8. Automatically add ungrouped biomes that dont interface with the library's api and provide a type in some way
 
 
+global eg:
+
+Librosa.biometypes =
+{
+    unregistered = { (all the shit that doesn't use the library) },
+
+}
 
 
 /////
