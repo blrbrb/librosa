@@ -95,6 +95,18 @@ function list_all_node_groups()
     return group_list
 end
 
+minetest.register_chatcommand("groups", {
+    description = "Lists all groups",
+    privs = { server = true },
+    func = function(name, param)
+        local groups = list_all_node_groups()
+        local output = table.concat(groups, ", ")
+        return true, " " .. output .. ""
+    end,
+})
+
+
+
 function Librosa.extract_surface_nodes()
     for _, biome in pairs(core.registered_biomes) do
         --core.debug(biome.name)

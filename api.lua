@@ -170,3 +170,4 @@ function Librosa.register_simple_plant(name, def)
 end
 
 function Librosa.register_biome(biome)
+end
